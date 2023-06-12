@@ -6,10 +6,17 @@ import (
 	"log"
 	"net/http"
 	"strings"
+
+	"github.com/AxterDoesCode/internal/database"
 )
 
 type apiConfig struct {
 	fileserverHits int
+}
+
+type Chirp struct {
+	ID          int    `json:"id"`
+	CleanedBody string `json:"body"`
 }
 
 func (cfg *apiConfig) middlewareMetricsInc(next http.Handler) http.Handler {
@@ -34,12 +41,9 @@ func (cfg *apiConfig) handlerMetrics(w http.ResponseWriter, r *http.Request) {
 	`, cfg.fileserverHits)))
 }
 
-func validateChirp(w http.ResponseWriter, r *http.Request) {
+func postChirp(w http.ResponseWriter, r *http.Request) {
 	type parameters struct {
 		Body string `json:"body"`
-	}
-	type returnVals struct {
-		CleanedBody string `json:"cleaned_body"`
 	}
 
 	decoder := json.NewDecoder(r.Body)
@@ -56,7 +60,8 @@ func validateChirp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	respondWithJSON(w, http.StatusOK, returnVals{
+	respondWithJSON(w, http.StatusOK, Chirp{
+		ID:          1,
 		CleanedBody: cleanChirp(params.Body),
 	})
 }

@@ -26,7 +26,7 @@ func main() {
 	r.Mount("/admin", adminRouter)
 
 	apiRouter.Get("/healthz", handlerReadiness)
-	apiRouter.Post("/validate_chirp", validateChirp)
+	apiRouter.Post("/chirps", postChirp)
 	adminRouter.Get("/metrics", apiCfg.handlerMetrics)
 	corsr := middlewareCors(r)
 
