@@ -19,7 +19,7 @@ func main() {
 		fileserverHits: 0,
 	}
 
-	db, err := database.NewDB("./")
+	db, err := database.NewDB(".")
 	if err != nil {
 		log.Fatal(err)
 	}

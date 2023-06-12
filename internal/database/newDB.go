@@ -3,6 +3,7 @@ package database
 import (
 	"log"
 	"os"
+	"sync"
 )
 
 func NewDB(path string) (*DB, error) {
@@ -12,6 +13,7 @@ func NewDB(path string) (*DB, error) {
 	}
 	returnDB := DB{
 		path: path + "/database.json",
+    mux: &sync.RWMutex{}
 	}
 	return &returnDB, nil
 }

@@ -61,7 +61,7 @@ func (cfg *apiConfig) postChirp(w http.ResponseWriter, r *http.Request) {
 		respondWithError(w, http.StatusInternalServerError, "Error creating chirp")
 		return
 	}
-	respondWithJSON(w, http.StatusOK, tempChirp)
+	respondWithJSON(w, 201, tempChirp)
 }
 
 func cleanChirp(text string) string {
