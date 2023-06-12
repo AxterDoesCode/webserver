@@ -56,8 +56,9 @@ func (cfg *apiConfig) postChirp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tempChirp, err := cfg.database.CreateChirp(params.Body)
+	tempChirp, err := cfg.database.CreateChirp(cleanChirp(params.Body))
 	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Error creating chirp")
 		return
 	}
 	respondWithJSON(w, http.StatusOK, tempChirp)
