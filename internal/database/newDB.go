@@ -13,7 +13,7 @@ func NewDB(path string) (*DB, error) {
 	}
 	returnDB := DB{
 		path: path + "/database.json",
-    mux: &sync.RWMutex{}
+		mux:  &sync.RWMutex{},
 	}
 	return &returnDB, nil
 }
