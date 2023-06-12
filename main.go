@@ -5,6 +5,8 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+
+	"github.com/AxterDoesCode/webserver/internal/database"
 )
 
 func main() {
@@ -13,7 +15,17 @@ func main() {
 	apiRouter := chi.NewRouter()
 	adminRouter := chi.NewRouter()
 
-	apiCfg := apiConfig{fileserverHits: 0}
+	apiCfg := apiConfig{
+		fileserverHits: 0,
+	}
+
+	db, err := database.NewDB("./")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	apiCfg.database = *db
+
 	r.Handle(
 		"/app/*",
 		apiCfg.middlewareMetricsInc(http.StripPrefix("/app", http.FileServer(http.Dir(".")))),
