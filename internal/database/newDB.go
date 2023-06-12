@@ -19,6 +19,7 @@ func NewDB(path string) (*DB, error) {
 
 	var dbstructure DBStructure
 	dbstructure.Chirps = make(map[int]Chirp)
+	dbstructure.Users = make(map[string]User)
 
 	dat, err := json.Marshal(dbstructure)
 	if err != nil {
