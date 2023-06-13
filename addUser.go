@@ -2,12 +2,14 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 )
 
 func (cfg *apiConfig) addUser(w http.ResponseWriter, r *http.Request) {
 	type parameters struct {
-		Email string `json:"email"`
+		Password string `json:"password"`
+		Email    string `json:"email"`
 	}
 
 	decoder := json.NewDecoder(r.Body)
@@ -17,9 +19,10 @@ func (cfg *apiConfig) addUser(w http.ResponseWriter, r *http.Request) {
 		respondWithError(w, http.StatusInternalServerError, "Couldn't decode parameters")
 		return
 	}
-	user, err := cfg.database.AddUser(params.Email)
+
+	user, err := cfg.database.AddUser(params.Password, params.Email)
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "Couldn't add user to databse")
+		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("%s", err))
 		return
 	}
 	respondWithJSON(w, http.StatusCreated, user)

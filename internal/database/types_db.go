@@ -8,8 +8,9 @@ type Chirp struct {
 }
 
 type User struct {
-	ID    int    `json:"id"`
-	Email string `json:"email"`
+	ID       int    `json:"id"`
+	Email    string `json:"email"`
+	Password []byte `json:"Password"`
 }
 
 type DB struct {
