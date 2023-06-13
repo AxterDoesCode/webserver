@@ -3,20 +3,26 @@ package main
 import (
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/joho/godotenv"
 
 	"github.com/AxterDoesCode/webserver/internal/database"
 )
 
 func main() {
+	godotenv.Load()
 	const port = "8080"
 	r := chi.NewRouter()
 	apiRouter := chi.NewRouter()
 	adminRouter := chi.NewRouter()
 
+	jwtSecret := os.Getenv("JWT_SECRET")
+
 	apiCfg := apiConfig{
 		fileserverHits: 0,
+		jwtSecret:      jwtSecret,
 	}
 
 	db, err := database.NewDB(".")

@@ -8,7 +8,8 @@ bin/*
 *.dll
 *.so
 *.dylib
-
+*.env
+*webserver
 # Test binary, built with `go test -c`
 *.test
 
