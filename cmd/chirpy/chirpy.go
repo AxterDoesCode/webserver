@@ -10,6 +10,7 @@ import (
 
 	"github.com/AxterDoesCode/webserver/internal/database"
 	"github.com/AxterDoesCode/webserver/pkg/apiconfig"
+	httphandler "github.com/AxterDoesCode/webserver/pkg/httpHandler"
 	"github.com/AxterDoesCode/webserver/pkg/middleware"
 )
 
@@ -36,16 +37,16 @@ func main() {
 
 	r.Handle(
 		"/app/*",
-		apiCfg.MiddlewareMetricsInc(http.StripPrefix("/app", http.FileServer(http.Dir(".")))),
+		apiCfg.MiddlewareMetricsInc(http.StripPrefix("/app", http.FileServer(http.Dir("./app")))),
 	)
 	r.Handle(
 		"/app",
-		apiCfg.MiddlewareMetricsInc(http.StripPrefix("/app", http.FileServer(http.Dir(".")))),
+		apiCfg.MiddlewareMetricsInc(http.StripPrefix("/app", http.FileServer(http.Dir("./app")))),
 	)
 	r.Mount("/api", apiRouter)
 	r.Mount("/admin", adminRouter)
 
-	apiRouter.Get("/healthz", handlerReadiness)
+	apiRouter.Get("/healthz", httphandler.HandlerReadiness)
 	apiRouter.Post("/chirps", apiCfg.PostChirp)
 	apiRouter.Get("/chirps", apiCfg.GetChirps)
 	apiRouter.Get("/chirps/{chirpID}", apiCfg.GetChirpByID)
@@ -63,10 +64,4 @@ func main() {
 
 	log.Printf("Serving on port : %s\n", port)
 	log.Fatal(server.ListenAndServe())
-}
-
-func handlerReadiness(w http.ResponseWriter, r *http.Request) {
-	w.Header().Add("Content=Type", "text-plain; charset=utf-8")
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(http.StatusText(http.StatusOK)))
 }
