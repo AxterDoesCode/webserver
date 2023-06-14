@@ -2,6 +2,7 @@ package apiconfig
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -198,15 +199,15 @@ func (cfg *ApiConfig) UpdateUserHandler(w http.ResponseWriter, r *http.Request) 
 
 func (cfg *ApiConfig) UserLogin(w http.ResponseWriter, r *http.Request) {
 	type parameters struct {
-		Email      string `json:"email"`
-		Password   string `json:"Password"`
-		Expiration int    `json:"expires_in_seconds"`
+		Email    string `json:"email"`
+		Password string `json:"Password"`
 	}
 
 	type responseUser struct {
-		ID    int    `json:"id"`
-		Email string `json:"email"`
-		Token string `json:"token"`
+		ID           int    `json:"id"`
+		Email        string `json:"email"`
+		Token        string `json:"token"`
+		RefreshToken string `json:"refresh_token"`
 	}
 
 	decoder := json.NewDecoder(r.Body)
@@ -227,34 +228,54 @@ func (cfg *ApiConfig) UserLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	jwtClaim := jwt.RegisteredClaims{
-		Issuer:    "chirpy",
-		IssuedAt:  jwt.NewNumericDate(time.Now().UTC()),
-		ExpiresAt: getExpirationTime(params.Expiration),
-		Subject:   strconv.Itoa(user.ID),
-	}
-
-	jwtToken := jwt.NewWithClaims(jwt.SigningMethodHS256, jwtClaim)
-	signedJwtToken, err := jwtToken.SignedString([]byte(cfg.JwtSecret))
+	// Creating Access and Refresh token
+	signedJwtAccessToken, err := generateJwtToken(user.ID, "chirpy-access", cfg.JwtSecret)
 	if err != nil {
-		errStr := fmt.Sprintf("%s", err)
-		httphandler.RespondWithError(w, http.StatusInternalServerError, errStr)
+		httphandler.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("%s", err))
 		return
 	}
 
+	signedJwtRefreshToken, err := generateJwtToken(user.ID, "chirpy-refresh", cfg.JwtSecret)
+	if err != nil {
+		httphandler.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("%s", err))
+		return
+	}
 	res := responseUser{
-		ID:    user.ID,
-		Email: user.Email,
-		Token: signedJwtToken,
+		ID:           user.ID,
+		Email:        user.Email,
+		Token:        signedJwtAccessToken,
+		RefreshToken: signedJwtRefreshToken,
 	}
 
 	httphandler.RespondWithJSON(w, 200, res)
 }
 
-func getExpirationTime(s int) *jwt.NumericDate {
-	secondsInHour := 60 * 60
-	if s == 0 || s > secondsInHour {
-		return jwt.NewNumericDate(time.Now().Add(24 * time.Hour).UTC())
+func generateJwtToken(id int, issuer, secret string) (string, error) {
+	var claimIssuer string
+	var expirationTime *jwt.NumericDate
+	switch issuer {
+	case "chirpy-access":
+		claimIssuer = "chirpy-access"
+		expirationTime = jwt.NewNumericDate(time.Now().Add(1 * time.Hour).UTC())
+	case "chirpy-refresh":
+		claimIssuer = "chirpy-refresh"
+		expirationTime = jwt.NewNumericDate(time.Now().Add(60 * 24 * time.Hour).UTC())
+	default:
+		return "", errors.New("Issuer string isn't valid")
 	}
-	return jwt.NewNumericDate(time.Now().Add(time.Duration(s) * time.Second).UTC())
+
+	jwtClaim := jwt.RegisteredClaims{
+		Issuer:    claimIssuer,
+		IssuedAt:  jwt.NewNumericDate(time.Now().UTC()),
+		ExpiresAt: expirationTime,
+		Subject:   strconv.Itoa(id),
+	}
+
+	jwtToken := jwt.NewWithClaims(jwt.SigningMethodHS256, jwtClaim)
+	signedJwtToken, err := jwtToken.SignedString([]byte(secret))
+	if err != nil {
+		errStr := fmt.Sprintf("%s", err)
+		return "", errors.New(errStr)
+	}
+	return signedJwtToken, nil
 }
