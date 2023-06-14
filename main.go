@@ -49,6 +49,7 @@ func main() {
 	apiRouter.Get("/chirps/{chirpID}", apiCfg.getChirpByID)
 	apiRouter.Post("/users", apiCfg.addUser)
 	apiRouter.Post("/login", apiCfg.userLogin)
+	apiRouter.Put("/users", apiCfg.updateUserHandler)
 
 	adminRouter.Get("/metrics", apiCfg.handlerMetrics)
 	corsr := middlewareCors(r)

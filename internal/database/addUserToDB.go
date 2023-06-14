@@ -12,7 +12,11 @@ func (db *DB) AddUser(password, email string) (User, error) {
 		return User{}, err
 	}
 
-	_, exists := dbStruct.Users[email]
+	_, exists, err := db.checkUserExists(email)
+	if err != nil {
+		return User{}, errors.New("Error checking user exists")
+	}
+
 	if exists {
 		return User{}, errors.New("User already exists, please try a different email or login")
 	}
@@ -32,7 +36,7 @@ func (db *DB) AddUser(password, email string) (User, error) {
 	}
 	fullUserDetails.Password = hash
 
-	dbStruct.Users[email] = fullUserDetails
+	dbStruct.Users[dbNextIndex] = fullUserDetails
 	err = db.writeDB(dbStruct)
 	if err != nil {
 		return User{}, err

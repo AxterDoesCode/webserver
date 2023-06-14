@@ -7,14 +7,13 @@ import (
 )
 
 func (db *DB) ValidateLogin(email, password string) (User, error) {
-	dbStruct, err := db.loadDB()
-	if err != nil {
-		return User{}, err
-	}
-
-	matchedUser, exists := dbStruct.Users[email]
+	matchedUser, exists, err := db.checkUserExists(email)
 	if !exists {
 		return User{}, errors.New("User doesn't exist")
+	}
+
+	if err != nil {
+		return User{}, errors.New("Error checking user exists")
 	}
 
 	bytePassword := []byte(password)
