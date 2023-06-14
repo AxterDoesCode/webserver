@@ -14,7 +14,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/golang-jwt/jwt/v5"
 
-	"github.com/AxterDoesCode/webserver/pkg/httpHandler"
+	"github.com/AxterDoesCode/webserver/pkg/httphandler"
 )
 
 func (cfg *ApiConfig) MiddlewareMetricsInc(next http.Handler) http.Handler {
@@ -63,6 +63,7 @@ func (cfg *ApiConfig) AddUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	decoder := json.NewDecoder(r.Body)
+
 	params := parameters{}
 	err := decoder.Decode(&params)
 	if err != nil {
@@ -167,9 +168,28 @@ func (cfg *ApiConfig) UpdateUserHandler(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	tokenIssuer, err := jwtToken.Claims.GetIssuer()
+	if err != nil {
+		httphandler.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("%s", err))
+		return
+	}
+
+	if tokenIssuer == "chirpy-refresh" {
+		httphandler.RespondWithError(
+			w,
+			http.StatusUnauthorized,
+			"Provided token is a refresh token",
+		)
+		return
+	}
+
 	expirationTime, err := jwtToken.Claims.GetExpirationTime()
 	if err != nil {
-		httphandler.RespondWithError(w, http.StatusUnauthorized, "Token doesn't have an expiration")
+		httphandler.RespondWithError(
+			w,
+			http.StatusUnauthorized,
+			"Token error getting token expirationTime",
+		)
 		return
 	}
 

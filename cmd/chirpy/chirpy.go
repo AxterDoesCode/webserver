@@ -10,7 +10,7 @@ import (
 
 	"github.com/AxterDoesCode/webserver/internal/database"
 	"github.com/AxterDoesCode/webserver/pkg/apiconfig"
-	httphandler "github.com/AxterDoesCode/webserver/pkg/httpHandler"
+	"github.com/AxterDoesCode/webserver/pkg/httphandler"
 	"github.com/AxterDoesCode/webserver/pkg/middleware"
 )
 
