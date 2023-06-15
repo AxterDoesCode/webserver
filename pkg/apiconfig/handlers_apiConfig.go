@@ -327,6 +327,7 @@ func (cfg *ApiConfig) UserLogin(w http.ResponseWriter, r *http.Request) {
 		ID           int    `json:"id"`
 		Email        string `json:"email"`
 		Token        string `json:"token"`
+		ChirpyRed    bool   `json:"is_chirpy_red"`
 		RefreshToken string `json:"refresh_token"`
 	}
 
@@ -365,6 +366,7 @@ func (cfg *ApiConfig) UserLogin(w http.ResponseWriter, r *http.Request) {
 		Email:        user.Email,
 		Token:        signedJwtAccessToken,
 		RefreshToken: signedJwtRefreshToken,
+		ChirpyRed:    user.ChirpyRed,
 	}
 
 	httphandler.RespondWithJSON(w, 200, res)
@@ -502,6 +504,34 @@ func (cfg *ApiConfig) RevokeHandler(w http.ResponseWriter, r *http.Request) {
 		httphandler.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("%s", err))
 		return
 	}
-
 	httphandler.RespondWithJSON(w, http.StatusOK, returnToken)
+}
+
+func (cfg *ApiConfig) UserUpgradeHandler(w http.ResponseWriter, r *http.Request) {
+	type params struct {
+		Event string `json:"event"`
+		Data  struct {
+			UserID int `json:"user_id"`
+		} `json:"data"`
+	}
+
+	decoder := json.NewDecoder(r.Body)
+	requestParams := params{}
+
+	err := decoder.Decode(&requestParams)
+	if err != nil {
+		httphandler.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("%s", err))
+		return
+	}
+
+	if requestParams.Event != "user.upgraded" {
+		httphandler.RespondWithJSON(w, http.StatusOK, params{})
+		return
+	}
+	err = cfg.Database.UpgradeUser(requestParams.Data.UserID)
+	if err != nil {
+		httphandler.RespondWithError(w, http.StatusNotFound, fmt.Sprintf("%s", err))
+		return
+	}
+	httphandler.RespondWithJSON(w, http.StatusOK, params{})
 }

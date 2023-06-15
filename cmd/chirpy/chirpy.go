@@ -56,6 +56,7 @@ func main() {
 	apiRouter.Post("/refresh", apiCfg.RefreshHandler)
 	apiRouter.Post("/revoke", apiCfg.RevokeHandler)
 	apiRouter.Delete("/chirps/{chirpID}", apiCfg.DeleteChirpByID)
+	apiRouter.Post("/polka/webhooks", apiCfg.UserUpgradeHandler)
 
 	adminRouter.Get("/metrics", apiCfg.HandlerMetrics)
 	corsr := middleware.MiddlewareCors(r)

@@ -44,8 +44,9 @@ func (db *DB) AddUser(password, email string) (User, error) {
 
 	dbNextIndex := len(dbStruct.Users) + 1
 	returnUser := User{
-		ID:    dbNextIndex,
-		Email: email,
+		ID:        dbNextIndex,
+		Email:     email,
+		ChirpyRed: false,
 	}
 
 	fullUserDetails := returnUser
@@ -199,8 +200,9 @@ func (db *DB) UpdateUser(idStr, email, newPassword string) (User, error) {
 	}
 
 	returnUser := User{
-		ID:    elem.ID,
-		Email: elem.Email,
+		ID:        elem.ID,
+		Email:     elem.Email,
+		ChirpyRed: elem.ChirpyRed,
 	}
 
 	return returnUser, nil
@@ -223,8 +225,9 @@ func (db *DB) ValidateLogin(email, password string) (User, error) {
 	}
 
 	return User{
-		ID:    matchedUser.ID,
-		Email: matchedUser.Email,
+		ID:        matchedUser.ID,
+		Email:     matchedUser.Email,
+		ChirpyRed: matchedUser.ChirpyRed,
 	}, nil
 }
 
@@ -272,4 +275,24 @@ func (db *DB) RevokeToken(refreshToken string, revokeTime time.Time) (RevokedTok
 		return RevokedToken{}, err
 	}
 	return newRevokedToken, nil
+}
+
+func (db *DB) UpgradeUser(userID int) error {
+	dbStruct, err := db.loadDB()
+	if err != nil {
+		return err
+	}
+
+	elem, exists := dbStruct.Users[userID]
+	if !exists {
+		return errors.New("User cannot be upgraded as user doesn't exist")
+	}
+
+	elem.ChirpyRed = true
+	dbStruct.Users[userID] = elem
+	err = db.writeDB(dbStruct)
+	if err != nil {
+		return err
+	}
+	return nil
 }

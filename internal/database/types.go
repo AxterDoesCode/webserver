@@ -12,9 +12,10 @@ type Chirp struct {
 }
 
 type User struct {
-	ID       int    `json:"id"`
-	Email    string `json:"email"`
-	Password []byte `json:"Password,omitempty"`
+	ID        int    `json:"id"`
+	Email     string `json:"email"`
+	Password  []byte `json:"Password,omitempty"`
+	ChirpyRed bool   `json:"is_chirpy_red"`
 }
 
 type DB struct {
