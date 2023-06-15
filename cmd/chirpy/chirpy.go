@@ -53,6 +53,8 @@ func main() {
 	apiRouter.Post("/users", apiCfg.AddUser)
 	apiRouter.Post("/login", apiCfg.UserLogin)
 	apiRouter.Put("/users", apiCfg.UpdateUserHandler)
+	apiRouter.Post("/refresh", apiCfg.RefreshHandler)
+	apiRouter.Post("/revoke", apiCfg.RevokeHandler)
 
 	adminRouter.Get("/metrics", apiCfg.HandlerMetrics)
 	corsr := middleware.MiddlewareCors(r)

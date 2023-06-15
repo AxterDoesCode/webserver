@@ -299,3 +299,109 @@ func generateJwtToken(id int, issuer, secret string) (string, error) {
 	}
 	return signedJwtToken, nil
 }
+
+func (cfg *ApiConfig) RefreshHandler(w http.ResponseWriter, r *http.Request) {
+	type returnToken struct {
+		Token string `json:"token"`
+	}
+	tokenString := r.Header.Get("Authorization")
+	tokenString = strings.TrimPrefix(tokenString, "Bearer ")
+	claims := jwt.MapClaims{}
+	jwtToken, err := jwt.ParseWithClaims(
+		tokenString,
+		claims,
+		func(token *jwt.Token) (interface{}, error) {
+			return []byte(cfg.JwtSecret), nil
+		},
+	)
+	if err != nil {
+		httphandler.RespondWithError(w, http.StatusUnauthorized, "Token is invalid")
+		return
+	}
+
+	tokenIssuer, err := jwtToken.Claims.GetIssuer()
+	if err != nil {
+		httphandler.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("%s", err))
+		return
+	}
+
+	if tokenIssuer != "chirpy-refresh" {
+		httphandler.RespondWithError(w, http.StatusUnauthorized, "Token is not a refresh token")
+		return
+	}
+
+	err = cfg.Database.CheckRefreshTokenRevoked(tokenString)
+	if err != nil {
+		httphandler.RespondWithError(w, http.StatusUnauthorized, "Token is revoked")
+		return
+	}
+
+	idStr, err := jwtToken.Claims.GetSubject()
+	if err != nil {
+		httphandler.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("%s", err))
+		return
+	}
+
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		httphandler.RespondWithError(
+			w,
+			http.StatusInternalServerError,
+			"Error converting Token subject ID to int",
+		)
+		return
+	}
+
+	returnAccessToken, err := generateJwtToken(id, "chirpy-access", cfg.JwtSecret)
+	if err != nil {
+		httphandler.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("%s", err))
+		return
+	}
+
+	returnAccessTokenStruct := returnToken{
+		Token: returnAccessToken,
+	}
+	httphandler.RespondWithJSON(w, http.StatusOK, returnAccessTokenStruct)
+}
+
+func (cfg *ApiConfig) RevokeHandler(w http.ResponseWriter, r *http.Request) {
+	tokenString := r.Header.Get("Authorization")
+	tokenString = strings.TrimPrefix(tokenString, "Bearer ")
+	claims := jwt.MapClaims{}
+	jwtToken, err := jwt.ParseWithClaims(
+		tokenString,
+		claims,
+		func(token *jwt.Token) (interface{}, error) {
+			return []byte(cfg.JwtSecret), nil
+		},
+	)
+	if err != nil {
+		httphandler.RespondWithError(w, http.StatusUnauthorized, "Token is invalid")
+		return
+	}
+
+	tokenIssuer, err := jwtToken.Claims.GetIssuer()
+	if err != nil {
+		httphandler.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("%s", err))
+		return
+	}
+
+	if tokenIssuer != "chirpy-refresh" {
+		httphandler.RespondWithError(w, http.StatusUnauthorized, "Token is not a refresh token")
+		return
+	}
+
+	err = cfg.Database.CheckRefreshTokenRevoked(tokenString)
+	if err != nil {
+		httphandler.RespondWithError(w, http.StatusAlreadyReported, "Token is already revoked")
+		return
+	}
+
+	returnToken, err := cfg.Database.RevokeToken(tokenString, time.Now())
+	if err != nil {
+		httphandler.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("%s", err))
+		return
+	}
+
+	httphandler.RespondWithJSON(w, http.StatusOK, returnToken)
+}

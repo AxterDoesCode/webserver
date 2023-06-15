@@ -1,6 +1,9 @@
 package database
 
-import "sync"
+import (
+	"sync"
+	"time"
+)
 
 type Chirp struct {
 	ID   int    `json:"id"`
@@ -18,7 +21,13 @@ type DB struct {
 	mux  *sync.RWMutex
 }
 
+type RevokedToken struct {
+	ID         string    `json:"id"`
+	RevokeTime time.Time `json:"revoke_time"`
+}
+
 type DBStructure struct {
-	Chirps map[int]Chirp `json:"chirps"`
-	Users  map[int]User  `json:"users"`
+	Chirps        map[int]Chirp           `json:"chirps"`
+	Users         map[int]User            `json:"users"`
+	RevokedTokens map[string]RevokedToken `json:"revoked_tokens"`
 }

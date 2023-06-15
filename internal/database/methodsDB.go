@@ -6,6 +6,7 @@ import (
 	"os"
 	"strconv"
 	"sync"
+	"time"
 
 	"golang.org/x/crypto/bcrypt"
 )
@@ -136,6 +137,7 @@ func NewDB(path string) (*DB, error) {
 	var dbstructure DBStructure
 	dbstructure.Chirps = make(map[int]Chirp)
 	dbstructure.Users = make(map[int]User)
+	dbstructure.RevokedTokens = make(map[string]RevokedToken)
 
 	dat, err := json.Marshal(dbstructure)
 	if err != nil {
@@ -220,4 +222,36 @@ func (db *DB) writeDB(dbStructure DBStructure) error {
 		return err
 	}
 	return nil
+}
+
+func (db *DB) CheckRefreshTokenRevoked(refreshToken string) error {
+	dbStruct, err := db.loadDB()
+	if err != nil {
+		return err
+	}
+
+	_, ok := dbStruct.RevokedTokens[refreshToken]
+	if !ok {
+		return nil
+	}
+	return errors.New("Token is revoked")
+}
+
+func (db *DB) RevokeToken(refreshToken string, revokeTime time.Time) (RevokedToken, error) {
+	dbStruct, err := db.loadDB()
+	if err != nil {
+		return RevokedToken{}, err
+	}
+
+	newRevokedToken := RevokedToken{
+		ID:         refreshToken,
+		RevokeTime: revokeTime,
+	}
+
+	dbStruct.RevokedTokens[refreshToken] = newRevokedToken
+	err = db.writeDB(dbStruct)
+	if err != nil {
+		return RevokedToken{}, err
+	}
+	return newRevokedToken, nil
 }
