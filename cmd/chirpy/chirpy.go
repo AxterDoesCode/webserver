@@ -55,6 +55,7 @@ func main() {
 	apiRouter.Put("/users", apiCfg.UpdateUserHandler)
 	apiRouter.Post("/refresh", apiCfg.RefreshHandler)
 	apiRouter.Post("/revoke", apiCfg.RevokeHandler)
+	apiRouter.Delete("/chirps/{chirpID}", apiCfg.DeleteChirpByID)
 
 	adminRouter.Get("/metrics", apiCfg.HandlerMetrics)
 	corsr := middleware.MiddlewareCors(r)

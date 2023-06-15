@@ -65,7 +65,7 @@ func (db *DB) AddUser(password, email string) (User, error) {
 	return returnUser, nil
 }
 
-func (db *DB) CreateChirp(body string) (Chirp, error) {
+func (db *DB) CreateChirp(authorID int, body string) (Chirp, error) {
 	dbStruct, err := db.loadDB()
 	if err != nil {
 		return Chirp{}, err
@@ -73,8 +73,9 @@ func (db *DB) CreateChirp(body string) (Chirp, error) {
 
 	dbNextIndex := len(dbStruct.Chirps) + 1
 	returnChirp := Chirp{
-		ID:   dbNextIndex,
-		Body: body,
+		ID:       dbNextIndex,
+		Body:     body,
+		AuthorID: authorID,
 	}
 
 	dbStruct.Chirps[dbNextIndex] = returnChirp
@@ -108,6 +109,23 @@ func (db *DB) GetChirpByID(id int) (Chirp, error) {
 		return Chirp{}, errors.New("The chirp ID doesn't correspond to any Chirp")
 	}
 	return elem, nil
+}
+
+func (db *DB) DeleteChirpByID(id int) (Chirp, error) {
+	dbStruct, err := db.loadDB()
+	if err != nil {
+		return Chirp{}, err
+	}
+	chirpToBeRemoved, ok := dbStruct.Chirps[id]
+	if !ok {
+		return Chirp{}, errors.New("The chirp ID doesn't correspond to any Chirp")
+	}
+	delete(dbStruct.Chirps, id)
+	err = db.writeDB(dbStruct)
+	if err != nil {
+		return Chirp{}, err
+	}
+	return chirpToBeRemoved, nil
 }
 
 func (db *DB) GetChirpsArr() ([]Chirp, error) {

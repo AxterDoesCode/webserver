@@ -44,6 +44,11 @@ func (cfg *ApiConfig) GetChirpByID(w http.ResponseWriter, r *http.Request) {
 
 	id, err := strconv.Atoi(param)
 	if err != nil {
+		httphandler.RespondWithError(
+			w,
+			http.StatusInternalServerError,
+			"error converting id to int",
+		)
 		return
 	}
 
@@ -54,6 +59,63 @@ func (cfg *ApiConfig) GetChirpByID(w http.ResponseWriter, r *http.Request) {
 	}
 
 	httphandler.RespondWithJSON(w, http.StatusOK, chirp)
+}
+
+func (cfg *ApiConfig) DeleteChirpByID(w http.ResponseWriter, r *http.Request) {
+	param := chi.URLParam(r, "chirpID")
+
+	tokenString := r.Header.Get("Authorization")
+	tokenString = strings.TrimPrefix(tokenString, "Bearer ")
+	claims := jwt.MapClaims{}
+	jwtToken, err := jwt.ParseWithClaims(
+		tokenString,
+		claims,
+		func(token *jwt.Token) (interface{}, error) {
+			return []byte(cfg.JwtSecret), nil
+		},
+	)
+	if err != nil {
+		httphandler.RespondWithError(w, http.StatusUnauthorized, "Token is invalid")
+		return
+	}
+
+	tokenIssuer, err := jwtToken.Claims.GetIssuer()
+	if err != nil {
+		httphandler.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("%s", err))
+		return
+	}
+
+	if tokenIssuer != "chirpy-access" {
+		httphandler.RespondWithError(w, http.StatusUnauthorized, "Token is not a refresh token")
+		return
+	}
+
+	tokenSubject, err := jwtToken.Claims.GetSubject()
+	if err != nil {
+		httphandler.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("%s", err))
+		return
+	}
+
+	if param != tokenSubject {
+		httphandler.RespondWithError(
+			w,
+			http.StatusForbidden,
+			"Cannot Delete: Chirp does not belong to user",
+		)
+		return
+	}
+
+	paramID, err := strconv.Atoi(param)
+	if err != nil {
+		httphandler.RespondWithError(
+			w,
+			http.StatusInternalServerError,
+			"error converting id to int",
+		)
+		return
+	}
+	deletedChirp, err := cfg.Database.DeleteChirpByID(paramID)
+	httphandler.RespondWithJSON(w, http.StatusOK, deletedChirp)
 }
 
 func (cfg *ApiConfig) AddUser(w http.ResponseWriter, r *http.Request) {
@@ -99,9 +161,35 @@ func (cfg *ApiConfig) PostChirp(w http.ResponseWriter, r *http.Request) {
 		Body string `json:"body"`
 	}
 
+	tokenString := r.Header.Get("Authorization")
+	tokenString = strings.TrimPrefix(tokenString, "Bearer ")
+	claims := jwt.MapClaims{}
+	jwtToken, err := jwt.ParseWithClaims(
+		tokenString,
+		claims,
+		func(token *jwt.Token) (interface{}, error) {
+			return []byte(cfg.JwtSecret), nil
+		},
+	)
+	if err != nil {
+		httphandler.RespondWithError(w, http.StatusUnauthorized, "Token is invalid")
+		return
+	}
+
+	tokenIssuer, err := jwtToken.Claims.GetIssuer()
+	if err != nil {
+		httphandler.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("%s", err))
+		return
+	}
+
+	if tokenIssuer != "chirpy-access" {
+		httphandler.RespondWithError(w, http.StatusUnauthorized, "Token is not an access token")
+		return
+	}
+
 	decoder := json.NewDecoder(r.Body)
 	params := parameters{}
-	err := decoder.Decode(&params)
+	err = decoder.Decode(&params)
 	if err != nil {
 		httphandler.RespondWithError(
 			w,
@@ -117,7 +205,19 @@ func (cfg *ApiConfig) PostChirp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tempChirp, err := cfg.Database.CreateChirp(cleanChirp(params.Body))
+	claimSubject, err := jwtToken.Claims.GetSubject()
+	if err != nil {
+		httphandler.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("%s", err))
+		return
+	}
+
+	id, err := strconv.Atoi(claimSubject)
+	if err != nil {
+		httphandler.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("%s", err))
+		return
+	}
+
+	tempChirp, err := cfg.Database.CreateChirp(id, cleanChirp(params.Body))
 	if err != nil {
 		httphandler.RespondWithError(w, http.StatusInternalServerError, "Error creating chirp")
 		log.Print(err)
