@@ -142,6 +142,21 @@ func (db *DB) GetChirpsArr() ([]Chirp, error) {
 	return chirpSlice, nil
 }
 
+func (db *DB) GetChirpsByAuthor(authorID int) ([]Chirp, error) {
+	dat, err := db.loadDB()
+	chirpSlice := make([]Chirp, 0)
+	if err != nil {
+		return chirpSlice, err
+	}
+
+	for _, val := range dat.Chirps {
+		if val.AuthorID == authorID {
+			chirpSlice = append(chirpSlice, val)
+		}
+	}
+	return chirpSlice, nil
+}
+
 func NewDB(path string) (*DB, error) {
 	_, err := os.Create(path + "/database.json")
 	if err != nil {

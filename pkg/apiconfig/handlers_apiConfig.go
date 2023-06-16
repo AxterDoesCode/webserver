@@ -146,13 +146,34 @@ func (cfg *ApiConfig) AddUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func (cfg *ApiConfig) GetChirps(w http.ResponseWriter, r *http.Request) {
+	authorID := r.URL.Query().Get("author_id")
+	sortingMethod := r.URL.Query().Get("sort")
 	slice, err := cfg.Database.GetChirpsArr()
 	if err != nil {
 		return
 	}
-	sort.Slice(slice, func(i, j int) bool {
-		return slice[i].ID < slice[j].ID
-	})
+
+	if authorID != "" {
+		targetAuthorID, err := strconv.Atoi(authorID)
+		if err != nil {
+			httphandler.RespondWithError(
+				w,
+				http.StatusInternalServerError,
+				"Error converting targetAuthorID to int",
+			)
+			return
+		}
+		slice, err = cfg.Database.GetChirpsByAuthor(targetAuthorID)
+	}
+	if sortingMethod == "desc" {
+		sort.Slice(slice, func(i, j int) bool {
+			return slice[i].ID > slice[j].ID
+		})
+	} else {
+		sort.Slice(slice, func(i, j int) bool {
+			return slice[i].ID < slice[j].ID
+		})
+	}
 	httphandler.RespondWithJSON(w, http.StatusOK, slice)
 }
 
@@ -513,6 +534,13 @@ func (cfg *ApiConfig) UserUpgradeHandler(w http.ResponseWriter, r *http.Request)
 		Data  struct {
 			UserID int `json:"user_id"`
 		} `json:"data"`
+	}
+
+	apiKey := r.Header.Get("Authorization")
+	apiKey = strings.TrimPrefix(apiKey, "ApiKey ")
+	if apiKey != cfg.PolkaKey {
+		httphandler.RespondWithError(w, http.StatusUnauthorized, "Unauthorized")
+		return
 	}
 
 	decoder := json.NewDecoder(r.Body)

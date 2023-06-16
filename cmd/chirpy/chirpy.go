@@ -22,10 +22,12 @@ func main() {
 	adminRouter := chi.NewRouter()
 
 	jwtSecret := os.Getenv("JWT_SECRET")
+	polkaKey := os.Getenv("POLKA_KEY")
 
 	apiCfg := apiconfig.ApiConfig{
 		FileserverHits: 0,
 		JwtSecret:      jwtSecret,
+		PolkaKey:       polkaKey,
 	}
 
 	db, err := database.NewDB(".")
